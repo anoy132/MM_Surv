@@ -515,7 +515,7 @@ class T2GFormer_MAE(nn.Module):
             x = self._end_residual(x, x_residual, layer, 1)
 
         if mask_flag:
-            return x, mask, ids_keep
+            return x, mask, ids_keep, ids_return
         else:
             return x
     
@@ -534,7 +534,7 @@ class T2GFormer_MAE(nn.Module):
         col_feat_cat = col_feat_cat.transpose(1,0).reshape(keep_num, -1)   # [L, dim]
         return col_feat_cat
     
-    def forward_decoder(self, x, mask, ids_keep, ):
+    def forward_decoder(self, x, mask, ids_keep, ids_restore):
         batch_size = x.shape[0]
         # x is like [batch_size, keep_num, dim],
         masked_embedding = self.construct_masked_embedding()
@@ -542,6 +542,8 @@ class T2GFormer_MAE(nn.Module):
 
         cls_token = x[:,:1,:]
         x_wo_cls = x[:,1:,:]
+
+        x_wo_cls = torch.gather(x_wo_cls, dim=1, index=ids_restore.unsqueeze(-1).repeat(-1, -1, x.shape[-1]))
 
         ids_masked = torch.nonzero(mask, as_tuple=True)[1].view(batch_size, -1)
 
@@ -640,8 +642,8 @@ class T2GFormer_MAE(nn.Module):
 
     def forward(self, x_num: Tensor, x_cat: ty.Optional[Tensor], return_fr: bool = False) -> Tensor:
 
-        latent, masks, ids_keep = self.forward_encoder(x_num, x_cat, return_fr)
-        pred = self.forward_decoder(latent, masks, ids_keep)
+        latent, masks, ids_keep, ids_restore = self.forward_encoder(x_num, x_cat, return_fr)
+        pred = self.forward_decoder(latent, masks, ids_keep, ids_restore)
         loss = self.forward_loss(pred, x_num, x_cat, masks)
         return loss
     
