@@ -475,7 +475,7 @@ class T2GFormer_MAE(nn.Module):
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
-        return x_masked, mask, ids_restore, ids_keep
+        return x_masked, mask, ids_keep
     
     def forward_encoder(self, x_num, x_cat, return_fr, mask_flag:bool=True):
         fr_graphs = [] # FR-Graph of each layer
